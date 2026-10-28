@@ -12,6 +12,9 @@ import pe.upeu.ecorecicla.domain.repository.RutaRepository
 class ObservarRutaUseCase(private val rutas: RutaRepository) {
     fun ruta(): Flow<Ruta?> = rutas.observarRuta()
     fun puntos(): Flow<List<PuntoAcopio>> = rutas.observarPuntos()
+    /** SC-A: buscador combinado con «Solo pendientes de pesar». */
+    fun puntos(texto: String, soloPendientes: Boolean): Flow<List<PuntoAcopio>> =
+        rutas.observarPuntos(texto, soloPendientes)
     fun punto(id: Long): Flow<PuntoAcopio?> = rutas.observarPunto(id)
     fun pendientes(): Flow<Long> = rutas.contarPendientes()
     fun ultimaSincronizacion(): Flow<InfoSincronizacion?> = rutas.ultimaSincronizacion()

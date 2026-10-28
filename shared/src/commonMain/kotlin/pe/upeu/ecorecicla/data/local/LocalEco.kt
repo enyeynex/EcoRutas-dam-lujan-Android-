@@ -39,6 +39,12 @@ class LocalEco(private val base: EcoDb) {
             PuntoAcopio(id, razon, direccion, zona, material, secuencia.toInt(), atendido == 1L)
         }.asFlow().mapToList(Dispatchers.Default)
 
+    /** SC-A: puntos que contienen [texto] y, si [soloPendientes], solo los aun no pesados. */
+    fun observarPuntos(texto: String, soloPendientes: Boolean): Flow<List<PuntoAcopio>> =
+        q.puntosFiltrados(texto.trim(), if (soloPendientes) 1L else 0L) { id, razon, direccion, zona, material, secuencia, atendido ->
+            PuntoAcopio(id, razon, direccion, zona, material, secuencia.toInt(), atendido == 1L)
+        }.asFlow().mapToList(Dispatchers.Default)
+
     fun observarPunto(id: Long): Flow<PuntoAcopio?> =
         q.puntoPorId(id) { pid, razon, direccion, zona, material, secuencia, atendido ->
             PuntoAcopio(pid, razon, direccion, zona, material, secuencia.toInt(), atendido == 1L)

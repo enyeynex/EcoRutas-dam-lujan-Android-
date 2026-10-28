@@ -10,6 +10,8 @@ import pe.upeu.ecorecicla.domain.model.Ruta
 interface RutaRepository {
     fun observarRuta(): Flow<Ruta?>
     fun observarPuntos(): Flow<List<PuntoAcopio>>
+    /** SC-A: filtro resuelto en la consulta local, no en la interfaz. */
+    fun observarPuntos(texto: String, soloPendientes: Boolean): Flow<List<PuntoAcopio>>
     fun observarPunto(id: Long): Flow<PuntoAcopio?>
     fun contarPendientes(): Flow<Long>
     fun ultimaSincronizacion(): Flow<InfoSincronizacion?>

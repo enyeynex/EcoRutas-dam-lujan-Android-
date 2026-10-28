@@ -41,6 +41,8 @@ class EcoRepositorioOffline(
 
     override fun observarRuta(): Flow<Ruta?> = local.observarRuta()
     override fun observarPuntos(): Flow<List<PuntoAcopio>> = local.observarPuntos()
+    override fun observarPuntos(texto: String, soloPendientes: Boolean): Flow<List<PuntoAcopio>> =
+        local.observarPuntos(texto, soloPendientes)
     override fun observarPunto(id: Long): Flow<PuntoAcopio?> = local.observarPunto(id)
     override fun observarPesajes(puntoId: Long): Flow<List<Pesaje>> = local.observarPesajes(puntoId)
     override fun contarPendientes(): Flow<Long> = local.contarPendientes()

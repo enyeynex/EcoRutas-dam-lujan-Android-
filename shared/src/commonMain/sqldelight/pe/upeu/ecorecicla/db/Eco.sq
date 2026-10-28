@@ -58,6 +58,20 @@ SELECT p.id, p.razonSocial, p.direccion, p.zona, p.materialHabitual, p.secuencia
 FROM punto p
 ORDER BY p.secuencia ASC;
 
+-- SC-A: buscador + «Solo pendientes de pesar». El filtro lo resuelve SQLite
+-- sobre la base local, asi que funciona igual sin conexion.
+puntosFiltrados:
+SELECT p.id, p.razonSocial, p.direccion, p.zona, p.materialHabitual, p.secuencia,
+       CASE WHEN p.atendido = 1 OR EXISTS (
+            SELECT 1 FROM pesaje s WHERE s.puntoId = p.id AND s.rutaId = p.rutaId AND s.anulado = 0
+       ) THEN 1 ELSE 0 END AS atendido
+FROM punto p
+WHERE (p.razonSocial LIKE '%' || :texto || '%' OR p.direccion LIKE '%' || :texto || '%')
+  AND (:soloPendientes = 0 OR (p.atendido = 0 AND NOT EXISTS (
+            SELECT 1 FROM pesaje s WHERE s.puntoId = p.id AND s.rutaId = p.rutaId AND s.anulado = 0
+       )))
+ORDER BY p.secuencia ASC;
+
 puntoPorId:
 SELECT p.id, p.razonSocial, p.direccion, p.zona, p.materialHabitual, p.secuencia,
        CASE WHEN p.atendido = 1 OR EXISTS (
