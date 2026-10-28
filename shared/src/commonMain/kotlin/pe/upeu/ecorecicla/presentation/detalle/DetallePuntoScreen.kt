@@ -103,6 +103,9 @@ fun DetallePuntoScreen(
                         keyboardType = KeyboardType.Decimal)
                     ValidatedTextField(f.tara, viewModel::onTara, "Tara del contenedor (kg)", f.errores["tara"],
                         keyboardType = KeyboardType.Decimal, ayuda = "El peso neto lo calcula el servicio")
+                    // SC-C: el error local o el validationErrors.humedadEstimada del servicio cae aqui.
+                    ValidatedTextField(f.humedad, viewModel::onHumedad, "Humedad estimada (%)", f.errores["humedadEstimada"],
+                        keyboardType = KeyboardType.Decimal, ayuda = "Opcional, de 0 a 100")
                     ValidatedTextField(f.observacion, viewModel::onObservacion, "Observación", f.errores["observacion"])
                     f.error?.let { Mensaje(it, error = true) }
                 }
@@ -148,6 +151,9 @@ private fun PesajeItem(
                 (pesaje.estado as? EstadoPesaje.Anulado)?.let { Etiqueta("Anulado", alerta = true) }
             }
             Text("Bruto ${pesaje.pesoBruto} kg · Tara ${pesaje.tara} kg", style = MaterialTheme.typography.bodySmall)
+            pesaje.humedadEstimada?.let {
+                Text("Humedad $it %", style = MaterialTheme.typography.bodySmall)
+            }
             Text("${pesaje.operario} · ${pesaje.fechaHora.replace('T', ' ').take(16)}" + if (pesaje.id < 0) " · id local ${pesaje.id}" else "",
                 style = MaterialTheme.typography.bodySmall)
             (pesaje.estado as? EstadoPesaje.Anulado)?.let {

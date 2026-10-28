@@ -26,6 +26,8 @@ data class FormularioPesaje(
     val pesoBruto: String = "",
     val tara: String = "",
     val observacion: String = "",
+    /** SC-C: humedad estimada en %, opcional. */
+    val humedad: String = "",
     /** Errores por campo: locales o los validationErrors del servicio (400). */
     val errores: Map<String, String> = emptyMap(),
     val guardando: Boolean = false,
@@ -90,7 +92,8 @@ class DetallePuntoViewModel(
                 formulario = FormularioPesaje(
                     idEditando = pesaje.id, material = pesaje.material,
                     pesoBruto = numero(pesaje.pesoBruto), tara = numero(pesaje.tara),
-                    observacion = pesaje.observacion.orEmpty()
+                    observacion = pesaje.observacion.orEmpty(),
+                    humedad = pesaje.humedadEstimada?.let { h -> numero(h) }.orEmpty()
                 )
             )
         }
@@ -102,6 +105,7 @@ class DetallePuntoViewModel(
     fun onPesoBruto(v: String) = editar { it.copy(pesoBruto = v, errores = it.errores - "pesoBruto") }
     fun onTara(v: String) = editar { it.copy(tara = v, errores = it.errores - "tara") }
     fun onObservacion(v: String) = editar { it.copy(observacion = v) }
+    fun onHumedad(v: String) = editar { it.copy(humedad = v, errores = it.errores - "humedadEstimada") }
 
     fun guardar() {
         val estado = _uiState.value
@@ -112,9 +116,9 @@ class DetallePuntoViewModel(
         editar { it.copy(guardando = true, error = null) }
         viewModelScope.launch {
             val resultado = if (f.idEditando == null) {
-                registrarPesaje(ruta.id, punto.id, f.material, f.pesoBruto, f.tara, f.observacion)
+                registrarPesaje(ruta.id, punto.id, f.material, f.pesoBruto, f.tara, f.observacion, f.humedad)
             } else {
-                corregirPesaje(f.idEditando, f.material, f.pesoBruto, f.tara, f.observacion)
+                corregirPesaje(f.idEditando, f.material, f.pesoBruto, f.tara, f.observacion, f.humedad)
             }
             resultado.fold(
                 onSuccess = { p ->
