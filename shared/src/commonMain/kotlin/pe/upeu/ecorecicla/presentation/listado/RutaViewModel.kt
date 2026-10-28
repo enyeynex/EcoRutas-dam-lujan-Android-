@@ -2,7 +2,10 @@ package pe.upeu.ecorecicla.presentation.listado
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -20,6 +23,11 @@ import pe.upeu.ecorecicla.domain.usecase.SincronizarUseCase
 data class RutaUiState(
     val ruta: Ruta? = null,
     val puntos: List<PuntoAcopio> = emptyList(),
+    /** SC-A: texto del buscador y filtro «Solo pendientes de pesar». */
+    val texto: String = "",
+    val soloPendientes: Boolean = false,
+    /** Puntos que devuelve la consulta filtrada (la lista que se dibuja). */
+    val puntosVisibles: List<PuntoAcopio> = emptyList(),
     val pendientes: Long = 0,
     val ultima: InfoSincronizacion? = null,
     val sincronizando: Boolean = false,
@@ -34,6 +42,7 @@ data class RutaUiState(
     val cierreConError: Boolean = false
 ) {
     val atendidos: Int get() = puntos.count { it.atendido }
+    val hayFiltro: Boolean get() = texto.isNotBlank() || soloPendientes
 }
 
 /**
@@ -51,9 +60,19 @@ class RutaViewModel(
     private val _uiState = MutableStateFlow(RutaUiState())
     val uiState: StateFlow<RutaUiState> = _uiState.asStateFlow()
 
+    // SC-A: el filtro vive en el ViewModel solo como criterio; la consulta la hace SQLite.
+    private val texto = MutableStateFlow("")
+    private val soloPendientes = MutableStateFlow(false)
+
     init {
         viewModelScope.launch { observar.ruta().collect { r -> _uiState.update { it.copy(ruta = r) } } }
         viewModelScope.launch { observar.puntos().collect { p -> _uiState.update { it.copy(puntos = p) } } }
+        viewModelScope.launch {
+            @OptIn(ExperimentalCoroutinesApi::class)
+            combine(texto, soloPendientes) { t, s -> t to s }
+                .flatMapLatest { (t, s) -> observar.puntos(t, s) }
+                .collect { p -> _uiState.update { it.copy(puntosVisibles = p) } }
+        }
         viewModelScope.launch { observar.pendientes().collect { n -> _uiState.update { it.copy(pendientes = n) } } }
         viewModelScope.launch { observar.ultimaSincronizacion().collect { u -> _uiState.update { it.copy(ultima = u) } } }
         // Sincronizacion automatica al recuperar la conexion (sin red -> con red).
@@ -98,6 +117,16 @@ class RutaViewModel(
                 )
             }
         }
+    }
+
+    fun onTextoChange(valor: String) {
+        texto.value = valor
+        _uiState.update { it.copy(texto = valor) }
+    }
+
+    fun onSoloPendientesChange(valor: Boolean) {
+        soloPendientes.value = valor
+        _uiState.update { it.copy(soloPendientes = valor) }
     }
 
     fun cerrarRuta() {

@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -24,6 +26,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,6 +76,10 @@ fun RutaScreen(
             }
         }
 
+        if (ruta != null) {
+            Filtros(estado, viewModel::onTextoChange, viewModel::onSoloPendientesChange)
+        }
+
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             when {
                 // Primera carga: base vacia mientras baja la ruta.
@@ -109,13 +117,35 @@ fun RutaScreen(
                         descripcion = "No hay puntos de acopio planificados.", modifier = Modifier.align(Alignment.Center)
                     )
 
+                estado.puntosVisibles.isEmpty() && estado.hayFiltro ->
+                    EstadoVacio(
+                        icono = Icons.Default.SearchOff, titulo = "Ningún punto coincide con el filtro",
+                        descripcion = "Cambia el texto o desactiva «Solo pendientes de pesar».",
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(estado.puntos, key = { it.id }) { punto ->
+                    items(estado.puntosVisibles, key = { it.id }) { punto ->
                         PuntoItem(punto, onClick = { onVerPunto(punto.id) })
                     }
                 }
             }
         }
+    }
+}
+
+/** SC-A: el composable solo envia el criterio; no recorre ni filtra la lista. */
+@Composable
+private fun Filtros(estado: RutaUiState, onTexto: (String) -> Unit, onSoloPendientes: (Boolean) -> Unit) {
+    OutlinedTextField(
+        value = estado.texto, onValueChange = onTexto, singleLine = true,
+        label = { Text("Buscar punto") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Solo pendientes de pesar", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Switch(checked = estado.soloPendientes, onCheckedChange = onSoloPendientes)
     }
 }
 
