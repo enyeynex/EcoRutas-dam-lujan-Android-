@@ -34,7 +34,8 @@ CREATE TABLE pesaje (
     motivoAnulacion TEXT,
     pendiente       INTEGER NOT NULL DEFAULT 0, -- 1 = el servicio aun no conoce este cambio
     operacion       TEXT,                       -- CREAR | EDITAR | ANULAR mientras esta pendiente
-    rechazo         TEXT                        -- motivo si el servicio rechazo el cambio
+    rechazo         TEXT,                       -- motivo si el servicio rechazo el cambio
+    humedadEstimada REAL                        -- SC-C: % de humedad estimada (opcional, 0 a 100)
 );
 
 CREATE TABLE sincronizacion (
@@ -99,21 +100,21 @@ SELECT COALESCE(MIN(id), 0) FROM pesaje;
 
 insertarPesaje:
 INSERT OR REPLACE INTO pesaje (id, rutaId, puntoId, fechaHora, material, pesoBruto, tara, pesoNeto,
-    observacion, operario, anulado, motivoAnulacion, pendiente, operacion, rechazo)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    observacion, operario, anulado, motivoAnulacion, pendiente, operacion, rechazo, humedadEstimada)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- La bajada nunca pisa una fila con cambios pendientes.
 insertarPesajeSiNoExiste:
 INSERT OR IGNORE INTO pesaje (id, rutaId, puntoId, fechaHora, material, pesoBruto, tara, pesoNeto,
-    observacion, operario, anulado, motivoAnulacion, pendiente, operacion, rechazo)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL);
+    observacion, operario, anulado, motivoAnulacion, pendiente, operacion, rechazo, humedadEstimada)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?);
 
 borrarPesajesSincronizados:
 DELETE FROM pesaje WHERE pendiente = 0;
 
 actualizarPesajeLocal:
 UPDATE pesaje SET material = ?, pesoBruto = ?, tara = ?, pesoNeto = ?, observacion = ?,
-    pendiente = 1, operacion = ?, rechazo = NULL
+    humedadEstimada = ?, pendiente = 1, operacion = ?, rechazo = NULL
 WHERE id = ?;
 
 marcarAnulado:

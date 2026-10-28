@@ -175,7 +175,7 @@ class EcoRepositorioOffline(
         }
     }
 
-    private fun Pesaje.datos() = DatosPesaje(material, pesoBruto, tara, observacion)
+    private fun Pesaje.datos() = DatosPesaje(material, pesoBruto, tara, observacion, humedadEstimada)
 
     private fun motivoDe(error: ErrorApi): String =
         if (error is ErrorApi.Validacion && error.campos.isNotEmpty()) error.campos.values.joinToString(". ")

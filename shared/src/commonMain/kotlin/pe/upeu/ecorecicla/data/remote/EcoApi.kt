@@ -43,13 +43,13 @@ class EcoApi(
 
     suspend fun registrarPesaje(rutaId: Long, puntoId: Long, datos: DatosPesaje): PesajeDto = llamadaApi(avisos) {
         cliente.post("pesajes") {
-            setBody(PesajeRequestDto(rutaId, puntoId, datos.material, datos.pesoBruto, datos.tara, datos.observacion))
+            setBody(PesajeRequestDto(rutaId, puntoId, datos.material, datos.pesoBruto, datos.tara, datos.observacion, datos.humedadEstimada))
         }.body()
     }
 
     suspend fun corregirPesaje(id: Long, datos: DatosPesaje): PesajeDto = llamadaApi(avisos) {
         cliente.put("pesajes/$id") {
-            setBody(CorreccionPesajeDto(datos.material, datos.pesoBruto, datos.tara, datos.observacion))
+            setBody(CorreccionPesajeDto(datos.material, datos.pesoBruto, datos.tara, datos.observacion, datos.humedadEstimada))
         }.body()
     }
 

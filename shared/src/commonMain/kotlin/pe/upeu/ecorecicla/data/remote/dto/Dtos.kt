@@ -89,7 +89,8 @@ data class PesajeDto(
     val observacion: String? = null,
     @SerialName("operario") val operarioUsuario: String,
     val anulado: Boolean = false,
-    val motivoAnulacion: String? = null
+    val motivoAnulacion: String? = null,
+    val humedadEstimada: Double? = null
 )
 
 /** El cliente nunca envia el peso neto: lo calcula el servicio (RN-03). */
@@ -100,7 +101,8 @@ data class PesajeRequestDto(
     val material: String,
     val pesoBruto: Double,
     val tara: Double,
-    val observacion: String?
+    val observacion: String?,
+    val humedadEstimada: Double? = null
 )
 
 @Serializable
@@ -108,7 +110,8 @@ data class CorreccionPesajeDto(
     val material: String,
     val pesoBruto: Double,
     val tara: Double,
-    val observacion: String?
+    val observacion: String?,
+    val humedadEstimada: Double? = null
 )
 
 // ---------- Conversion al dominio ----------
@@ -141,5 +144,6 @@ fun PesajeDto.aDominio() = Pesaje(
     estado = if (anulado) EstadoPesaje.Anulado(motivoAnulacion.orEmpty()) else EstadoPesaje.Registrado,
     pendiente = false,
     rutaId = rutaId,
-    observacion = observacion
+    observacion = observacion,
+    humedadEstimada = humedadEstimada
 )

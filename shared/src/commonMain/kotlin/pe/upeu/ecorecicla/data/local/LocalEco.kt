@@ -67,7 +67,8 @@ class LocalEco(private val base: EcoDb) {
         val id = minOf(menor, 0L) - 1L
         q.insertarPesaje(
             id, rutaId, puntoId, fechaHora, datos.material, datos.pesoBruto, datos.tara,
-            datos.pesoBruto - datos.tara, datos.observacion, operario, 0L, null, 1L, CREAR, null
+            datos.pesoBruto - datos.tara, datos.observacion, operario, 0L, null, 1L, CREAR, null,
+            datos.humedadEstimada
         )
         return buscar(id)!!
     }
@@ -77,7 +78,7 @@ class LocalEco(private val base: EcoDb) {
         val operacion = if (id < 0) CREAR else EDITAR
         q.actualizarPesajeLocal(
             datos.material, datos.pesoBruto, datos.tara, datos.pesoBruto - datos.tara,
-            datos.observacion, operacion, id
+            datos.observacion, datos.humedadEstimada, operacion, id
         )
     }
 
@@ -107,7 +108,8 @@ class LocalEco(private val base: EcoDb) {
         val anulado = p.estado as? EstadoPesaje.Anulado
         q.insertarPesaje(
             p.id, p.rutaId, p.puntoId, p.fechaHora, p.material, p.pesoBruto, p.tara, p.pesoNeto,
-            p.observacion, p.operario, if (anulado != null) 1L else 0L, anulado?.motivo, 0L, null, null
+            p.observacion, p.operario, if (anulado != null) 1L else 0L, anulado?.motivo, 0L, null, null,
+            p.humedadEstimada
         )
     }
 
@@ -134,7 +136,8 @@ class LocalEco(private val base: EcoDb) {
                 val anulado = p.estado as? EstadoPesaje.Anulado
                 q.insertarPesajeSiNoExiste(
                     p.id, p.rutaId, p.puntoId, p.fechaHora, p.material, p.pesoBruto, p.tara, p.pesoNeto,
-                    p.observacion, p.operario, if (anulado != null) 1L else 0L, anulado?.motivo
+                    p.observacion, p.operario, if (anulado != null) 1L else 0L, anulado?.motivo,
+                    p.humedadEstimada
                 )
             }
         }
@@ -161,7 +164,8 @@ class LocalEco(private val base: EcoDb) {
         pendiente = pendiente == 1L,
         rutaId = rutaId,
         observacion = observacion,
-        rechazo = rechazo
+        rechazo = rechazo,
+        humedadEstimada = humedadEstimada
     )
 
     companion object {

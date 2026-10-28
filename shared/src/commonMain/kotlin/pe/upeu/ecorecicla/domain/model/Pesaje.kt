@@ -15,7 +15,9 @@ data class Pesaje(
     val rutaId: Long = 0,
     val observacion: String? = null,
     /** Motivo si el servicio rechazo el cambio al sincronizar; null si no. */
-    val rechazo: String? = null
+    val rechazo: String? = null,
+    /** SC-C: humedad estimada del material, en % (opcional). */
+    val humedadEstimada: Double? = null
 ) {
     val anulado: Boolean get() = estado is EstadoPesaje.Anulado
 }
