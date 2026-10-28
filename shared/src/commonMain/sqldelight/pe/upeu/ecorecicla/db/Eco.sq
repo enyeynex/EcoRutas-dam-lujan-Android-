@@ -1,0 +1,150 @@
+-- Base local de EcoRutas. Es la unica fuente de verdad de la interfaz:
+-- la red solo la mantiene al dia.
+
+CREATE TABLE ruta (
+    id     INTEGER NOT NULL PRIMARY KEY,
+    fecha  TEXT    NOT NULL,
+    estado TEXT    NOT NULL            -- ABIERTA | CERRADA
+);
+
+CREATE TABLE punto (
+    id               INTEGER NOT NULL PRIMARY KEY,
+    rutaId           INTEGER NOT NULL,
+    razonSocial      TEXT    NOT NULL,
+    direccion        TEXT    NOT NULL,
+    zona             TEXT    NOT NULL,
+    materialHabitual TEXT    NOT NULL,
+    secuencia        INTEGER NOT NULL,
+    atendido         INTEGER NOT NULL DEFAULT 0   -- segun el servicio
+);
+
+-- id negativo = creado en el dispositivo y aun no enviado (el servicio nunca emite negativos).
+CREATE TABLE pesaje (
+    id              INTEGER NOT NULL PRIMARY KEY,
+    rutaId          INTEGER NOT NULL,
+    puntoId         INTEGER NOT NULL,
+    fechaHora       TEXT    NOT NULL,
+    material        TEXT    NOT NULL,
+    pesoBruto       REAL    NOT NULL,
+    tara            REAL    NOT NULL,
+    pesoNeto        REAL    NOT NULL,          -- provisional (bruto - tara) hasta que responde el servicio
+    observacion     TEXT,
+    operario        TEXT    NOT NULL,
+    anulado         INTEGER NOT NULL DEFAULT 0,
+    motivoAnulacion TEXT,
+    pendiente       INTEGER NOT NULL DEFAULT 0, -- 1 = el servicio aun no conoce este cambio
+    operacion       TEXT,                       -- CREAR | EDITAR | ANULAR mientras esta pendiente
+    rechazo         TEXT                        -- motivo si el servicio rechazo el cambio
+);
+
+CREATE TABLE sincronizacion (
+    id        INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    instante  INTEGER NOT NULL,
+    enviados  INTEGER NOT NULL,
+    recibidos INTEGER NOT NULL
+);
+
+-- ---------- Ruta y puntos ----------
+
+rutaActual:
+SELECT * FROM ruta LIMIT 1;
+
+-- atendido: lo dice el servicio o ya hay un pesaje local vigente (incluido uno pendiente).
+puntosDeRuta:
+SELECT p.id, p.razonSocial, p.direccion, p.zona, p.materialHabitual, p.secuencia,
+       CASE WHEN p.atendido = 1 OR EXISTS (
+            SELECT 1 FROM pesaje s WHERE s.puntoId = p.id AND s.rutaId = p.rutaId AND s.anulado = 0
+       ) THEN 1 ELSE 0 END AS atendido
+FROM punto p
+ORDER BY p.secuencia ASC;
+
+puntoPorId:
+SELECT p.id, p.razonSocial, p.direccion, p.zona, p.materialHabitual, p.secuencia,
+       CASE WHEN p.atendido = 1 OR EXISTS (
+            SELECT 1 FROM pesaje s WHERE s.puntoId = p.id AND s.rutaId = p.rutaId AND s.anulado = 0
+       ) THEN 1 ELSE 0 END AS atendido
+FROM punto p
+WHERE p.id = ?;
+
+insertarRuta:
+INSERT OR REPLACE INTO ruta (id, fecha, estado) VALUES (?, ?, ?);
+
+insertarPunto:
+INSERT OR REPLACE INTO punto (id, rutaId, razonSocial, direccion, zona, materialHabitual, secuencia, atendido)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+borrarRutas:
+DELETE FROM ruta;
+
+borrarPuntos:
+DELETE FROM punto;
+
+-- ---------- Pesajes ----------
+
+pesajesDePunto:
+SELECT * FROM pesaje WHERE puntoId = ? ORDER BY fechaHora DESC, id DESC;
+
+pesajePorId:
+SELECT * FROM pesaje WHERE id = ?;
+
+contarPendientes:
+SELECT COUNT(*) FROM pesaje WHERE pendiente = 1 AND rechazo IS NULL;
+
+listarPendientes:
+SELECT * FROM pesaje WHERE pendiente = 1 AND rechazo IS NULL ORDER BY id DESC;
+
+-- COALESCE evita el NULL de la tabla vacia; el minOf de Kotlin garantiza que sea negativo.
+siguienteIdLocal:
+SELECT COALESCE(MIN(id), 0) FROM pesaje;
+
+insertarPesaje:
+INSERT OR REPLACE INTO pesaje (id, rutaId, puntoId, fechaHora, material, pesoBruto, tara, pesoNeto,
+    observacion, operario, anulado, motivoAnulacion, pendiente, operacion, rechazo)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- La bajada nunca pisa una fila con cambios pendientes.
+insertarPesajeSiNoExiste:
+INSERT OR IGNORE INTO pesaje (id, rutaId, puntoId, fechaHora, material, pesoBruto, tara, pesoNeto,
+    observacion, operario, anulado, motivoAnulacion, pendiente, operacion, rechazo)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL);
+
+borrarPesajesSincronizados:
+DELETE FROM pesaje WHERE pendiente = 0;
+
+actualizarPesajeLocal:
+UPDATE pesaje SET material = ?, pesoBruto = ?, tara = ?, pesoNeto = ?, observacion = ?,
+    pendiente = 1, operacion = ?, rechazo = NULL
+WHERE id = ?;
+
+marcarAnulado:
+UPDATE pesaje SET anulado = 1, motivoAnulacion = ?, pendiente = 1, operacion = 'ANULAR', rechazo = NULL
+WHERE id = ?;
+
+marcarSincronizado:
+UPDATE pesaje SET pendiente = 0, operacion = NULL, rechazo = NULL WHERE id = ?;
+
+marcarRechazado:
+UPDATE pesaje SET rechazo = ? WHERE id = ?;
+
+borrarPesaje:
+DELETE FROM pesaje WHERE id = ?;
+
+-- Solo filas que el servicio no tiene confirmadas.
+descartarPendiente:
+DELETE FROM pesaje WHERE id = ? AND pendiente = 1;
+
+-- ---------- Sincronizacion ----------
+
+ultimaSincronizacion:
+SELECT * FROM sincronizacion WHERE id = 1;
+
+registrarSincronizacion:
+INSERT OR REPLACE INTO sincronizacion (id, instante, enviados, recibidos) VALUES (1, ?, ?, ?);
+
+-- Turno compartido: al cerrar sesion el equipo queda limpio.
+borrarTodo {
+    DELETE FROM pesaje;
+    DELETE FROM punto;
+    DELETE FROM ruta;
+    DELETE FROM sincronizacion;
+}
