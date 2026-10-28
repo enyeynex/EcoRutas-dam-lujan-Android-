@@ -59,7 +59,9 @@ fun RutaScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-        Encabezado(estado, textoAntiguedad(estado.ultima?.instante, ahora), viewModel::sincronizar)
+        val pendientes by viewModel.pendientes.collectAsStateWithLifecycle()
+
+        Encabezado(estado, pendientes, textoAntiguedad(estado.ultima?.instante, ahora), viewModel::sincronizar)
 
         estado.resumen?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         estado.aviso?.let { Mensaje(it, error = true) }
@@ -120,7 +122,7 @@ fun RutaScreen(
 }
 
 @Composable
-private fun Encabezado(estado: RutaUiState, antiguedad: String, onSincronizar: () -> Unit) {
+private fun Encabezado(estado: RutaUiState, pendientes: Long, antiguedad: String, onSincronizar: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             val ruta = estado.ruta
@@ -140,7 +142,7 @@ private fun Encabezado(estado: RutaUiState, antiguedad: String, onSincronizar: (
             CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
         } else {
             // El numero sale de una consulta observable de la base local (contarPendientes).
-            BadgedBox(badge = { if (estado.pendientes > 0) Badge { Text("${estado.pendientes}") } }) {
+            BadgedBox(badge = { if (pendientes > 0) Badge { Text("$pendientes") } }) {
                 IconButton(onClick = onSincronizar) { Icon(Icons.Default.Sync, contentDescription = "Sincronizar") }
             }
         }

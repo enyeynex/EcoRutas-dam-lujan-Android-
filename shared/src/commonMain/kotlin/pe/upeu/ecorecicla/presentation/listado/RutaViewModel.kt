@@ -3,6 +3,8 @@ package pe.upeu.ecorecicla.presentation.listado
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -20,7 +22,6 @@ import pe.upeu.ecorecicla.domain.usecase.SincronizarUseCase
 data class RutaUiState(
     val ruta: Ruta? = null,
     val puntos: List<PuntoAcopio> = emptyList(),
-    val pendientes: Long = 0,
     val ultima: InfoSincronizacion? = null,
     val sincronizando: Boolean = false,
     /** Ya termino al menos un intento de sincronizar en esta pantalla. */
@@ -51,10 +52,18 @@ class RutaViewModel(
     private val _uiState = MutableStateFlow(RutaUiState())
     val uiState: StateFlow<RutaUiState> = _uiState.asStateFlow()
 
+    /**
+     * SC-D: pesajes pendientes de sincronizar. Sale tal cual de la consulta
+     * observable contarPendientes de la base local: no hay un contador que el
+     * ViewModel sume o reste a mano. Cambia solo cuando se escribe en la tabla
+     * (al registrar, corregir, anular o sincronizar).
+     */
+    val pendientes: StateFlow<Long> =
+        observar.pendientes().stateIn(viewModelScope, SharingStarted.Eagerly, 0L)
+
     init {
         viewModelScope.launch { observar.ruta().collect { r -> _uiState.update { it.copy(ruta = r) } } }
         viewModelScope.launch { observar.puntos().collect { p -> _uiState.update { it.copy(puntos = p) } } }
-        viewModelScope.launch { observar.pendientes().collect { n -> _uiState.update { it.copy(pendientes = n) } } }
         viewModelScope.launch { observar.ultimaSincronizacion().collect { u -> _uiState.update { it.copy(ultima = u) } } }
         // Sincronizacion automatica al recuperar la conexion (sin red -> con red).
         viewModelScope.launch {
