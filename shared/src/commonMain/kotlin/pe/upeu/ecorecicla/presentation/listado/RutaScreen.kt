@@ -133,6 +133,12 @@ private fun Encabezado(estado: RutaUiState, pendientes: Long, antiguedad: String
             if (ruta != null) {
                 Text("${estado.atendidos} de ${estado.puntos.size} puntos pesados", style = MaterialTheme.typography.bodySmall)
             }
+            if (pendientes > 0) {
+                Text(
+                    if (pendientes == 1L) "1 pesaje por sincronizar" else "$pendientes pesajes por sincronizar",
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error
+                )
+            }
             Text(
                 antiguedad, style = MaterialTheme.typography.labelMedium,
                 color = if (estado.ultima == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
@@ -141,10 +147,32 @@ private fun Encabezado(estado: RutaUiState, pendientes: Long, antiguedad: String
         if (estado.sincronizando) {
             CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
         } else {
-            // El numero sale de una consulta observable de la base local (contarPendientes).
-            BadgedBox(badge = { if (pendientes > 0) Badge { Text("$pendientes") } }) {
-                IconButton(onClick = onSincronizar) { Icon(Icons.Default.Sync, contentDescription = "Sincronizar") }
+            DistintivoPendientes(pendientes, onSincronizar)
+        }
+    }
+}
+
+/**
+ * SC-D: distintivo con el numero de pesajes pendientes de sincronizar sobre el
+ * boton de sincronizar. El numero llega de la consulta observable de la base
+ * local; se oculta cuando no hay nada por enviar.
+ */
+@Composable
+private fun DistintivoPendientes(pendientes: Long, onSincronizar: () -> Unit) {
+    BadgedBox(
+        badge = {
+            if (pendientes > 0) {
+                Badge(containerColor = MaterialTheme.colorScheme.error) {
+                    Text(if (pendientes > 99) "99+" else "$pendientes")
+                }
             }
+        }
+    ) {
+        IconButton(onClick = onSincronizar) {
+            Icon(
+                Icons.Default.Sync,
+                contentDescription = if (pendientes > 0) "Sincronizar ($pendientes pendientes)" else "Sincronizar"
+            )
         }
     }
 }
